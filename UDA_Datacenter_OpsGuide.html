@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UDA — Datacenter Upgrade — Guía Técnica PM</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0D1B2A;
+    --orange: #FF6B2B;
+    --cream: #E8E8E0;
+    --blue-mid: #1E3A5F;
+    --risk-high: #E24B4A;
+    --risk-med: #EF9F27;
+    --risk-low: #1D9E75;
+    --bg: #f5f4f0;
+    --bg2: #ebebE6;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #9b9a94;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --mono: 'JetBrains Mono', 'Fira Mono', 'Consolas', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117;
+      --bg2: #181b22;
+      --surface: #1c2030;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.15);
+      --text: #e8e6de;
+      --text2: #9b9a94;
+      --text3: #5f5e5a;
+    }
+  }
+
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  .uda-root {
+    max-width: 960px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  /* HEADER */
+  .uda-header {
+    background: var(--navy);
+    padding: 24px 32px 20px;
+  }
+  .uda-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .uda-title {
+    font-size: 26px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+    font-family: var(--sans);
+  }
+  .uda-title span { color: var(--orange); font-style: italic; }
+  .uda-subtitle {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  /* NAV */
+  .nav-tabs {
+    background: var(--navy);
+    display: flex;
+    padding: 0 32px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    overflow-x: auto;
+    gap: 2px;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 11px 16px;
+    color: rgba(255,255,255,0.42);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .nav-tab:hover { color: rgba(255,255,255,0.75); }
+  .nav-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  /* CONTENT */
+  .tab-content { display: none; padding: 28px 32px; }
+  .tab-content.active { display: block; }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .stat-cell {
+    background: var(--bg2);
+    padding: 16px 18px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--orange);
+    font-family: var(--mono);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 5px;
+    font-family: var(--mono);
+  }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  /* RISK CARDS */
+  .risk-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  .risk-card {
+    display: grid;
+    grid-template-columns: 3px 1fr auto;
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .risk-card:hover { border-color: var(--border2); }
+  .risk-accent { width: 3px; align-self: stretch; min-height: 56px; }
+  .risk-accent.high { background: var(--risk-high); }
+  .risk-accent.med  { background: var(--risk-med); }
+  .risk-accent.low  { background: var(--risk-low); }
+  .risk-body { padding: 12px 14px; }
+  .risk-id { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; margin-bottom: 3px; }
+  .risk-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 5px; }
+  .risk-desc { font-size: 12px; color: var(--text2); line-height: 1.55; }
+  .risk-meta { padding: 12px 14px 12px 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .risk-badge {
+    font-size: 10px; font-family: var(--mono);
+    padding: 3px 8px; border-radius: 4px;
+    letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+  }
+  .risk-badge.high { background: rgba(226,75,74,0.12); color: var(--risk-high); }
+  .risk-badge.med  { background: rgba(239,159,39,0.12); color: var(--risk-med); }
+  .risk-badge.low  { background: rgba(29,158,117,0.12); color: var(--risk-low); }
+  .risk-owner { font-size: 10px; color: var(--text3); font-family: var(--mono); white-space: nowrap; }
+
+  /* TOPOLOGY */
+  .topo-wrap {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .topo-title { font-size: 10px; font-family: var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); margin-bottom: 14px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 11px; font-family: var(--mono); color: var(--text2); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .topo-note {
+    font-size: 12px; color: var(--text2); line-height: 1.6;
+    font-family: var(--mono);
+    background: rgba(226,75,74,0.06);
+    border-left: 2px solid var(--risk-high);
+    padding: 10px 14px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    margin-top: 12px;
+  }
+
+  /* DEP MATRIX */
+  .dep-matrix { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+  .dep-matrix th {
+    font-weight: 500; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--text2);
+    padding: 9px 10px; border-bottom: 0.5px solid var(--border); text-align: left;
+    font-family: var(--mono);
+  }
+  .dep-matrix td {
+    padding: 10px 10px; border-bottom: 0.5px solid var(--border);
+    color: var(--text); font-size: 12px; vertical-align: top;
+  }
+  .dep-matrix tr:hover td { background: var(--bg2); }
+  .dep-tag {
+    display: inline-block; font-size: 10px; font-family: var(--mono);
+    padding: 2px 7px; border-radius: 4px; margin: 1px 2px 1px 0;
+  }
+  .dep-tag.hard { background: rgba(226,75,74,0.1); color: var(--risk-high); }
+  .dep-tag.soft { background: rgba(239,159,39,0.1); color: var(--risk-med); }
+  .dep-tag.info { background: rgba(55,138,221,0.1); color: #378ADD; }
+  .dep-id { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .dep-resp { font-family: var(--mono); font-size: 11px; }
+
+  /* CHECKLIST */
+  .check-section { margin-bottom: 24px; }
+  .check-group-title {
+    font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text2); margin-bottom: 10px; padding-bottom: 7px;
+    border-bottom: 0.5px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .check-count { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .check-item {
+    display: grid; grid-template-columns: 20px 1fr auto;
+    gap: 10px; align-items: start;
+    padding: 10px 0; border-bottom: 0.5px solid var(--border);
+    cursor: pointer; user-select: none;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-box {
+    width: 16px; height: 16px; border: 1px solid var(--border2);
+    border-radius: 3px; margin-top: 1px; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background 0.12s, border-color 0.12s;
+    font-size: 10px; color: #fff;
+  }
+  .check-item.done .check-box { background: var(--risk-low); border-color: var(--risk-low); }
+  .check-item.done .check-box::after { content: '✓'; }
+  .check-text { font-size: 13px; color: var(--text); line-height: 1.45; transition: color 0.12s; }
+  .check-item.done .check-text { text-decoration: line-through; color: var(--text3); }
+  .check-note { font-size: 10px; color: var(--text3); font-family: var(--mono); white-space: nowrap; margin-top: 2px; }
+  .check-critical {
+    font-size: 10px; font-family: var(--mono); color: var(--risk-high);
+    background: rgba(226,75,74,0.1); padding: 2px 7px; border-radius: 4px; white-space: nowrap; margin-top: 2px;
+  }
+  .progress-wrap {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px; margin-top: 8px;
+  }
+  .progress-label-text { font-size: 10px; font-family: var(--mono); color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .progress-bar-wrap { background: var(--border); border-radius: 3px; height: 4px; width: 100%; }
+  .progress-bar-fill { height: 4px; border-radius: 3px; background: var(--orange); transition: width 0.4s ease; }
+  .progress-text { font-size: 12px; color: var(--text2); margin-top: 7px; font-family: var(--mono); }
+
+  /* DECISIONS */
+  .decision-grid { display: flex; flex-direction: column; gap: 12px; }
+  .decision-card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .decision-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+  .decision-id { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; }
+  .decision-urgency {
+    font-size: 10px; font-family: var(--mono); padding: 3px 9px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .decision-urgency.blocker { background: rgba(226,75,74,0.12); color: var(--risk-high); }
+  .decision-urgency.soon    { background: rgba(239,159,39,0.12); color: var(--risk-med); }
+  .decision-urgency.pending { background: rgba(136,135,128,0.12); color: var(--text2); }
+  .decision-q { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+  .decision-context { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
+  .decision-options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .decision-opt {
+    font-size: 11px; font-family: var(--mono);
+    padding: 5px 12px; border: 0.5px solid var(--border2);
+    border-radius: var(--radius); color: var(--text2);
+    cursor: pointer; background: var(--surface);
+    transition: border-color 0.15s, color 0.15s;
+    text-decoration: none; display: inline-block;
+  }
+  .decision-opt:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* SVG overrides for standalone */
+  svg .t  { font-family: var(--sans); font-size: 14px; fill: var(--text); }
+  svg .th { font-family: var(--sans); font-size: 14px; font-weight: 500; fill: var(--text); }
+  svg .ts { font-family: var(--sans); font-size: 12px; fill: var(--text2); }
+
+  @media (max-width: 600px) {
+    body { padding: 12px 8px; }
+    .tab-content { padding: 20px 16px; }
+    .uda-header { padding: 18px 20px 14px; }
+    .nav-tabs { padding: 0 16px; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .dep-matrix th:nth-child(4), .dep-matrix td:nth-child(4),
+    .dep-matrix th:nth-child(6), .dep-matrix td:nth-child(6) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="uda-root">
+
+  <!-- HEADER -->
+  <div class="uda-header">
+    <div class="uda-eyebrow">Coresolutions — CS-UDA — IaaS On-Premise</div>
+    <div class="uda-title">Universidad del Azuay<br><span>Datacenter Upgrade</span></div>
+    <div class="uda-subtitle">CONTACTO: PABLO ESQUIVEL &nbsp;·&nbsp; CONTRATO EN TRÁMITE &nbsp;·&nbsp; PLAZO DE EJECUCIÓN: 15 DÍAS TRAS ENTREGA &nbsp;·&nbsp; CONSULTAR SERVIDORES/STORAGE → HERNÁN &nbsp;·&nbsp; SWITCHES → ANDRÉS</div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showTab('riesgos',this)">01 — Riesgos</button>
+    <button class="nav-tab" onclick="showTab('topo',this)">02 — Topología</button>
+    <button class="nav-tab" onclick="showTab('dependencias',this)">03 — Dependencias</button>
+    <button class="nav-tab" onclick="showTab('checklist',this)">04 — Checklist técnico</button>
+    <button class="nav-tab" onclick="showTab('decisiones',this)">05 — Decisiones pendientes</button>
+  </div>
+
+  <!-- TAB 1: RIESGOS -->
+  <div id="tab-riesgos" class="tab-content active">
+    <div class="stats-bar">
+      <div class="stat-cell"><div class="stat-val">3</div><div class="stat-label">Riesgos altos</div></div>
+      <div class="stat-cell"><div class="stat-val">4</div><div class="stat-label">Riesgos medios</div></div>
+      <div class="stat-cell"><div class="stat-val">3</div><div class="stat-label">Decisiones abiertas blocker</div></div>
+      <div class="stat-cell"><div class="stat-val">15d</div><div class="stat-label">Plazo ejecución</div></div>
+    </div>
+
+    <div class="section-title">Riesgo técnico-operacional — Lo que puede paralizar la implementación</div>
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="risk-accent high"></div>
+        <div class="risk-body">
+          <div class="risk-id">R-01 / NETWORKING</div>
+          <div class="risk-name">Switch de gestión no definido — bloquea toda configuración</div>
+          <div class="risk-desc">El cliente decidirá entre 1930, 6000 o reutilizar el 5700. Hasta que no esté definido, no se puede planificar VLANs de gestión, ni asignar IPs a servidores, storage o NAS. Es la puerta de entrada a todo el resto del proyecto.</div>
+        </div>
+        <div class="risk-meta"><span class="risk-badge high">Alto</span><span class="risk-owner">Andrés / Cliente</span></div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-accent high"></div>
+        <div class="risk-body">
+          <div class="risk-id">R-02 / VIRTUALIZACIÓN</div>
+          <div class="risk-name">Decisión VMware vs otro hipervisor no tomada</div>
+          <div class="risk-desc">Si el cliente reutiliza licencias VMware en los SR630 V4, Coresolutions acompaña la migración de VMs. Si elige otro hipervisor, solo se acompaña el arranque inicial. El alcance de trabajo cambia radicalmente — hay que definir antes de que lleguen los equipos.</div>
+        </div>
+        <div class="risk-meta"><span class="risk-badge high">Alto</span><span class="risk-owner">Hernán / Cliente</span></div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-accent high"></div>
+        <div class="risk-body">
+          <div class="risk-id">R-03 / CABLING</div>
+          <div class="risk-name">RS4021 y Proliant 3250 (203/204) sin path 10G definido</div>
+          <div class="risk-desc">El cliente rechazó transceivers de cobre 10G para los switches nuevos. Si el switch de gestión es el 5700, pueden conectarse a 10G en cobre. Si no, quedan en 1G RJ-45. Esto afecta rendimiento de NAS y servidores legacy.</div>
+        </div>
+        <div class="risk-meta"><span class="risk-badge high">Alto</span><span class="risk-owner">Andrés</span></div>
+      </div>
+    </div>
+
+    <div class="section-title">Riesgo financiero — Lo que puede generar costo fuera de scope</div>
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="risk-accent med"></div>
+        <div class="risk-body">
+          <div class="risk-id">R-04 / SCOPE</div>
+          <div class="risk-name">Migración de VMs al clúster nuevo no está cerrada</div>
+          <div class="risk-desc">Si el cliente decide VMware, la migración de VMs es parte del servicio. Si decide otro hipervisor, no. Dejar esto abierto puede generar expectativa de servicio que no está en scope. Documentar y confirmar por escrito antes de iniciar.</div>
+        </div>
+        <div class="risk-meta"><span class="risk-badge med">Medio</span><span class="risk-owner">PM</span></div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-accent med"></div>
+        <div class="risk-body">
+          <div class="risk-id">R-05 / CABLES</div>
+          <div class="risk-name">Cables DAC 10G liberados del storage actual — inventariar antes de desechar</div>
+          <div class="risk-desc">Al reemplazar el FS5300 activo, los DAC 10G que lo conectaban quedan libres. Si no se inventarian, se pueden perder y luego necesitar comprar — impacto en presupuesto o en fecha de entrega.</div>
+        </div>
+        <div class="risk-meta"><span class="risk-badge med">Medio</span><span class="risk-owner">Hernán</span></div>
+      </div>
+    </div>
+
+    <div class="section-title">Riesgo estratégico — Lo que puede generar problemas post-entrega</div>
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="risk-accent med"></div>
+        <div class="risk-body">
+          <div class="risk-id">R-06 / MONITOREO</div>
+          <div class="risk-name">Integración de monitoreo hardware no planificada aún</div>
+          <div class="risk-desc">El servicio incluye monitoreo de hardware para detección temprana y gestión de garantías con fabricantes. Debe incorporarse a los sistemas de Coresolutions. Si no se hace en la implementación, se hace después con más fricción.</div>
+        </div>
+        <div class="risk-meta"><span class="risk-badge med">Medio</span><span class="risk-owner">PM / Coresolutions</span></div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-accent low"></div>
+        <div class="risk-body">
+          <div class="risk-id">R-07 / ENTREGA</div>
+          <div class="risk-name">Plazo de 15 días comienza con equipos — decisiones pendientes consumen tiempo</div>
+          <div class="risk-desc">Equipos estimados a mediados de mayo. Si el cliente no define switch de gestión e hipervisor antes de la entrega, los 15 días del plazo corren en paralelo a las decisiones pendientes. El plazo es de ejecución, no de definición.</div>
+        </div>
+        <div class="risk-meta"><span class="risk-badge low">Bajo</span><span class="risk-owner">PM</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: TOPOLOGÍA -->
+  <div id="tab-topo" class="tab-content">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>Switches datacenter (nuevos)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div>Servidores nuevos SR630</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Storage nuevo FS5300</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#888780"></div>Legado / gestión / pendiente</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div>Decisión pendiente del cliente</div>
+    </div>
+
+    <div class="topo-wrap">
+      <div class="topo-title">Diagrama de conectividad — lógica de red UDA Datacenter</div>
+      <svg width="100%" viewBox="0 0 860 590" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>Topología de red del datacenter UDA</title>
+        <desc>Diagrama de conectividad mostrando switches Aruba 8360, servidores Lenovo SR630, storage IBM FS5300, NAS RS4021 y equipos legacy</desc>
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+
+        <!-- Tier labels -->
+        <text x="14" y="78" font-family="-apple-system,sans-serif" font-size="10" fill="#888780" text-anchor="middle">Core</text>
+        <text x="14" y="208" font-family="-apple-system,sans-serif" font-size="10" fill="#888780" text-anchor="middle">Srv</text>
+        <text x="14" y="338" font-family="-apple-system,sans-serif" font-size="10" fill="#888780" text-anchor="middle">Stg</text>
+        <text x="14" y="468" font-family="-apple-system,sans-serif" font-size="10" fill="#888780" text-anchor="middle">Leg</text>
+        <line x1="30" y1="50" x2="30" y2="510" stroke="#88878050" stroke-width="0.5"/>
+
+        <!-- CORE LAYER -->
+        <!-- 8360 A -->
+        <rect x="80" y="50" width="170" height="52" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+        <text x="165" y="70" font-family="-apple-system,sans-serif" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Aruba 8360 — A</text>
+        <text x="165" y="87" font-family="-apple-system,sans-serif" font-size="11" fill="#185FA5" text-anchor="middle">32× 10/25G SFP+ · 4× 100G QSFP</text>
+
+        <!-- 8360 B -->
+        <rect x="280" y="50" width="170" height="52" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+        <text x="365" y="70" font-family="-apple-system,sans-serif" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle">Aruba 8360 — B</text>
+        <text x="365" y="87" font-family="-apple-system,sans-serif" font-size="11" fill="#185FA5" text-anchor="middle">32× 10/25G SFP+ · 4× 100G QSFP</text>
+
+        <!-- VSX link -->
+        <line x1="250" y1="76" x2="280" y2="76" stroke="#185FA5" stroke-width="2.5" stroke-dasharray="4 2"/>
+        <text x="265" y="68" font-family="-apple-system,sans-serif" font-size="10" fill="#378ADD" text-anchor="middle">100G DAC</text>
+        <text x="265" y="58" font-family="-apple-system,sans-serif" font-size="9" fill="#888780" text-anchor="middle">VSX ISL</text>
+
+        <!-- Switch gestión (pending) -->
+        <rect x="510" y="50" width="200" height="52" rx="6" fill="#FCEBEB" stroke="#A32D2D" stroke-width="0.5" stroke-dasharray="5 3"/>
+        <text x="610" y="70" font-family="-apple-system,sans-serif" font-size="13" font-weight="500" fill="#A32D2D" text-anchor="middle">Switch Gestión — (?)</text>
+        <text x="610" y="87" font-family="-apple-system,sans-serif" font-size="11" fill="#A32D2D" text-anchor="middle">1930 · 6000 · 5700 — por definir</text>
+
+        <!-- SERVER LAYER -->
+        <!-- SR630 #1 -->
+        <rect x="44" y="180" width="148" height="52" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+        <text x="118" y="200" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#633806" text-anchor="middle">SR630 V4 — 1</text>
+        <text x="118" y="217" font-family="-apple-system,sans-serif" font-size="10" fill="#854F0B" text-anchor="middle">25G DAC · datos + iSCSI</text>
+
+        <!-- SR630 #2 -->
+        <rect x="206" y="180" width="148" height="52" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+        <text x="280" y="200" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#633806" text-anchor="middle">SR630 V4 — 2</text>
+        <text x="280" y="217" font-family="-apple-system,sans-serif" font-size="10" fill="#854F0B" text-anchor="middle">25G DAC · datos + iSCSI</text>
+
+        <!-- SR630 #3 -->
+        <rect x="368" y="180" width="148" height="52" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+        <text x="442" y="200" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#633806" text-anchor="middle">SR630 V4 — 3</text>
+        <text x="442" y="217" font-family="-apple-system,sans-serif" font-size="10" fill="#854F0B" text-anchor="middle">25G DAC · datos + iSCSI</text>
+
+        <!-- Servers legacy box -->
+        <rect x="548" y="175" width="172" height="62" rx="6" fill="none" stroke="#88878080" stroke-width="0.5" stroke-dasharray="4 3"/>
+        <text x="634" y="196" font-family="-apple-system,sans-serif" font-size="11" fill="#888780" text-anchor="middle">Servers actuales</text>
+        <text x="634" y="211" font-family="-apple-system,sans-serif" font-size="10" fill="#888780" text-anchor="middle">reutilizan DAC 10G existentes</text>
+        <text x="634" y="226" font-family="-apple-system,sans-serif" font-size="10" fill="#888780" text-anchor="middle">→ se migran a 8360</text>
+
+        <!-- Server → Switch connections (25G) -->
+        <line x1="118" y1="180" x2="140" y2="102" stroke="#EF9F27" stroke-width="1.5" marker-end="url(#arr)" fill="none"/>
+        <line x1="280" y1="180" x2="200" y2="102" stroke="#EF9F27" stroke-width="1.5" marker-end="url(#arr)" fill="none"/>
+        <line x1="290" y1="180" x2="330" y2="102" stroke="#EF9F27" stroke-width="1.5" marker-end="url(#arr)" fill="none"/>
+        <line x1="442" y1="180" x2="400" y2="102" stroke="#EF9F27" stroke-width="1.5" marker-end="url(#arr)" fill="none"/>
+
+        <!-- Servers current → 8360 (dashed) -->
+        <line x1="620" y1="175" x2="415" y2="102" stroke="#88878080" stroke-width="0.8" stroke-dasharray="3 2" fill="none"/>
+
+        <!-- STORAGE LAYER -->
+        <!-- FS5300 nuevo -->
+        <rect x="55" y="310" width="175" height="52" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+        <text x="142" y="330" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#085041" text-anchor="middle">IBM FS5300 — nuevo</text>
+        <text x="142" y="347" font-family="-apple-system,sans-serif" font-size="10" fill="#0F6E56" text-anchor="middle">4× 25G iSCSI SFP+ / DAC</text>
+
+        <!-- FS5300 actual (goes to DC alterno) -->
+        <rect x="255" y="310" width="175" height="52" rx="6" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+        <text x="342" y="330" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#2C2C2A" text-anchor="middle">IBM FS5300 — actual</text>
+        <text x="342" y="347" font-family="-apple-system,sans-serif" font-size="10" fill="#5F5E5A" text-anchor="middle">→ reubica a DC alterno</text>
+
+        <!-- NAS RS4021 -->
+        <rect x="455" y="310" width="155" height="52" rx="6" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+        <text x="532" y="330" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#2C2C2A" text-anchor="middle">NAS RS4021</text>
+        <text x="532" y="347" font-family="-apple-system,sans-serif" font-size="10" fill="#5F5E5A" text-anchor="middle">1G copper → switch gestión</text>
+
+        <!-- Storage connections -->
+        <line x1="142" y1="310" x2="155" y2="232" stroke="#1D9E75" stroke-width="2" marker-end="url(#arr)" fill="none"/>
+        <line x1="165" y1="310" x2="260" y2="232" stroke="#1D9E75" stroke-width="2" marker-end="url(#arr)" fill="none"/>
+        <line x1="342" y1="310" x2="290" y2="232" stroke="#88878050" stroke-width="0.8" stroke-dasharray="3 2" fill="none"/>
+        <!-- NAS → switch gestión -->
+        <line x1="532" y1="310" x2="590" y2="102" stroke="#88878060" stroke-width="0.8" stroke-dasharray="3 2" fill="none"/>
+
+        <!-- LEGACY LAYER -->
+        <!-- Proliant 203 -->
+        <rect x="55" y="440" width="162" height="52" rx="6" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+        <text x="136" y="460" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#2C2C2A" text-anchor="middle">Proliant 3250 (203)</text>
+        <text x="136" y="477" font-family="-apple-system,sans-serif" font-size="10" fill="#5F5E5A" text-anchor="middle">1G copper → sw gestión</text>
+
+        <!-- Proliant 204 -->
+        <rect x="240" y="440" width="162" height="52" rx="6" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+        <text x="321" y="460" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#2C2C2A" text-anchor="middle">Proliant 3250 (204)</text>
+        <text x="321" y="477" font-family="-apple-system,sans-serif" font-size="10" fill="#5F5E5A" text-anchor="middle">1G copper → sw gestión</text>
+
+        <!-- NVRs -->
+        <rect x="430" y="440" width="150" height="52" rx="6" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+        <text x="505" y="460" font-family="-apple-system,sans-serif" font-size="12" font-weight="500" fill="#2C2C2A" text-anchor="middle">NVRs</text>
+        <text x="505" y="477" font-family="-apple-system,sans-serif" font-size="10" fill="#5F5E5A" text-anchor="middle">sw gestión o 8360 — por definir</text>
+
+        <!-- Legacy → sw gestión -->
+        <line x1="136" y1="440" x2="565" y2="102" stroke="#88878055" stroke-width="0.7" stroke-dasharray="3 2" fill="none"/>
+        <line x1="321" y1="440" x2="580" y2="102" stroke="#88878055" stroke-width="0.7" stroke-dasharray="3 2" fill="none"/>
+        <line x1="505" y1="440" x2="595" y2="102" stroke="#88878055" stroke-width="0.7" stroke-dasharray="3 2" fill="none"/>
+
+        <!-- LEGEND bottom -->
+        <line x1="44" y1="545" x2="90" y2="545" stroke="#378ADD" stroke-width="2" stroke-dasharray="4 2"/>
+        <text x="98" y="549" font-family="-apple-system,sans-serif" font-size="10" fill="#888780">VSX inter-switch 100G</text>
+        <line x1="230" y1="545" x2="276" y2="545" stroke="#EF9F27" stroke-width="1.5"/>
+        <text x="284" y="549" font-family="-apple-system,sans-serif" font-size="10" fill="#888780">25G DAC producción</text>
+        <line x1="420" y1="545" x2="466" y2="545" stroke="#1D9E75" stroke-width="2"/>
+        <text x="474" y="549" font-family="-apple-system,sans-serif" font-size="10" fill="#888780">iSCSI 25G storage</text>
+        <line x1="600" y1="545" x2="646" y2="545" stroke="#888780" stroke-width="0.8" stroke-dasharray="3 2"/>
+        <text x="654" y="549" font-family="-apple-system,sans-serif" font-size="10" fill="#888780">gestión / legado 1G</text>
+      </svg>
+    </div>
+
+    <div class="topo-note">
+      <strong style="color:var(--risk-high);">⚑ Atención:</strong> Todo lo que conecta al switch de gestión (NAS, Proliants, NVRs, puertos XCC/iDRAC de servidores y storage) está en pausa hasta que el cliente defina qué switch usa. El switch de gestión es la única pieza no adjudicada del proyecto.
+    </div>
+  </div>
+
+  <!-- TAB 3: DEPENDENCIAS -->
+  <div id="tab-dependencias" class="tab-content">
+    <p style="font-size:12px;color:var(--text2);margin-bottom:18px;">Las dependencias <span style="color:var(--risk-high);font-family:var(--mono);font-size:11px;">hard</span> bloquean la siguiente tarea. Las <span style="color:var(--risk-med);font-family:var(--mono);font-size:11px;">soft</span> la afectan sin paralizarla. Secuencia recomendada de ejecución.</p>
+    <table class="dep-matrix">
+      <thead>
+        <tr>
+          <th style="width:5%">#</th>
+          <th style="width:28%">Tarea técnica</th>
+          <th style="width:22%">Depende de</th>
+          <th style="width:10%">Tipo</th>
+          <th style="width:13%">Responsable</th>
+          <th style="width:22%">Condición de cierre</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="dep-id">T-01</td>
+          <td>Firmware update — Aruba 8360 A y B</td>
+          <td><span class="dep-tag info">Equipos entregados</span></td>
+          <td><span class="dep-tag info">Independiente</span></td>
+          <td class="dep-resp">Andrés</td>
+          <td style="font-size:11px;">Ambos en última versión estable</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-02</td>
+          <td>Rack mount — Aruba 8360 A y B</td>
+          <td><span class="dep-tag info">Rack UDA disponible</span></td>
+          <td><span class="dep-tag info">Independiente</span></td>
+          <td class="dep-resp">Andrés</td>
+          <td style="font-size:11px;">Montados, cable DAC VSX en puertos 100G</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-03</td>
+          <td>Configuración VSX — alta disponibilidad inter-switch</td>
+          <td><span class="dep-tag hard">T-01</span> <span class="dep-tag hard">T-02</span></td>
+          <td><span class="dep-tag hard">Hard</span></td>
+          <td class="dep-resp">Andrés</td>
+          <td style="font-size:11px;">VSX activo, failover probado A↔B</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-04</td>
+          <td>Definición arquitectura VLAN (datos, iSCSI, gestión, NVR)</td>
+          <td><span class="dep-tag hard">Switch gestión definido</span></td>
+          <td><span class="dep-tag hard">Hard — blocker</span></td>
+          <td class="dep-resp">Andrés + PM</td>
+          <td style="font-size:11px;">Doc VLANs aprobado por UDA antes de tocar switches</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-05</td>
+          <td>Config VLANs, LAG/LACP, troncales y acceso en 8360</td>
+          <td><span class="dep-tag hard">T-03</span> <span class="dep-tag hard">T-04</span></td>
+          <td><span class="dep-tag hard">Hard</span></td>
+          <td class="dep-resp">Andrés</td>
+          <td style="font-size:11px;">VLANs activas, tagged/untagged ok, LAGs estables</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-06</td>
+          <td>Instalación física SR630 V4 × 3 en enclosure</td>
+          <td><span class="dep-tag info">Equipos entregados</span></td>
+          <td><span class="dep-tag info">Independiente</span></td>
+          <td class="dep-resp">Hernán</td>
+          <td style="font-size:11px;">Servidores montados, fuentes conectadas, XCC accesible</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-07</td>
+          <td>Firmware completo SR630 — BIOS, XCC, NIC, HBA</td>
+          <td><span class="dep-tag hard">T-06</span></td>
+          <td><span class="dep-tag hard">Hard</span></td>
+          <td class="dep-resp">Hernán</td>
+          <td style="font-size:11px;">Todos en Lenovo Best Recipe al momento de instalación</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-08</td>
+          <td>Config puertos gestión (XCC/iDRAC) → switch gestión</td>
+          <td><span class="dep-tag hard">T-04 — switch def.</span></td>
+          <td><span class="dep-tag hard">Hard</span></td>
+          <td class="dep-resp">Hernán</td>
+          <td style="font-size:11px;">XCC accesible por red de gestión desde Coresolutions</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-09</td>
+          <td>Config arreglos de disco (RAID) en servidores</td>
+          <td><span class="dep-tag hard">T-07</span> <span class="dep-tag soft">Decisión hipervisor</span></td>
+          <td><span class="dep-tag soft">Soft</span></td>
+          <td class="dep-resp">Hernán</td>
+          <td style="font-size:11px;">RAID según requisitos del hipervisor elegido</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-10</td>
+          <td>Instalación IBM FS5300 nuevo + cableado 25G iSCSI</td>
+          <td><span class="dep-tag info">Equipos</span> <span class="dep-tag hard">T-05</span></td>
+          <td><span class="dep-tag hard">Hard</span></td>
+          <td class="dep-resp">Hernán</td>
+          <td style="font-size:11px;">FS5300 online, 4 puertos 25G a ambos 8360</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-11</td>
+          <td>Config arreglos FS5300 nuevo + migración desde FS5300 actual</td>
+          <td><span class="dep-tag hard">T-10</span></td>
+          <td><span class="dep-tag hard">Hard</span></td>
+          <td class="dep-resp">Hernán</td>
+          <td style="font-size:11px;">Datos migrados, FS5300 viejo listo para DC alterno</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-12</td>
+          <td>Migración conexiones de switches actuales a 8360 — cutover</td>
+          <td><span class="dep-tag hard">T-05</span> <span class="dep-tag hard">T-10</span></td>
+          <td><span class="dep-tag hard">Hard — crítico</span></td>
+          <td class="dep-resp">Andrés + Hernán</td>
+          <td style="font-size:11px;">Cutover en ventana mantenimiento, servicios &lt;2h</td>
+        </tr>
+        <tr>
+          <td class="dep-id">T-13</td>
+          <td>Incorporación al sistema monitoreo hardware Coresolutions</td>
+          <td><span class="dep-tag soft">T-08</span> <span class="dep-tag soft">T-10</span></td>
+          <td><span class="dep-tag soft">Soft</span></td>
+          <td class="dep-resp">PM / Core</td>
+          <td style="font-size:11px;">Alertas hardware activas en plataforma interna</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TAB 4: CHECKLIST -->
+  <div id="tab-checklist" class="tab-content">
+    <p style="font-size:12px;color:var(--text2);margin-bottom:20px;">Validaciones técnicas obligatorias durante la implementación. Haz clic para marcar como completado.</p>
+
+    <!-- Networking -->
+    <div class="check-section">
+      <div class="check-group-title">Networking — Aruba 8360 <span class="check-count" id="net-count">0 / 7</span></div>
+      <div id="net-checks">
+        <div class="check-item" onclick="toggleCheck(this,'net')"><div class="check-box"></div><div class="check-text">Firmware actualizado a última versión estable en ambos switches</div><div class="check-note">pre-config</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'net')"><div class="check-box"></div><div class="check-text">VSX configurado — link ISL en 100G QSFP28 (DAC 1m)</div><div class="check-note">T-03</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'net')"><div class="check-box"></div><div class="check-text">VSX keepalive activo y failover probado (apagar sw A, validar continuidad de servicio)</div><div class="check-critical">validar en producción</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'net')"><div class="check-box"></div><div class="check-text">VLANs definidas y documentadas según arquitectura aprobada por UDA</div><div class="check-note">T-04 previo</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'net')"><div class="check-box"></div><div class="check-text">Links agregados LAG/LACP configurados hacia servidores y storage</div><div class="check-note">T-05</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'net')"><div class="check-box"></div><div class="check-text">Puertos troncales y de acceso verificados — tagged/untagged correcto por puerto</div><div class="check-note">T-05</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'net')"><div class="check-box"></div><div class="check-text">Cutover ejecutado en ventana de mantenimiento — servicios restaurados en &lt;2h</div><div class="check-critical">cutover crítico</div></div>
+      </div>
+    </div>
+
+    <!-- Servidores -->
+    <div class="check-section">
+      <div class="check-group-title">Servidores — Lenovo SR630 V4 × 3 <span class="check-count" id="srv-count">0 / 6</span></div>
+      <div id="srv-checks">
+        <div class="check-item" onclick="toggleCheck(this,'srv')"><div class="check-box"></div><div class="check-text">Instalación física en rack — fuentes conectadas, cableado DAC 25G a ambos 8360</div><div class="check-note">T-06</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'srv')"><div class="check-box"></div><div class="check-text">Firmware completo: BIOS, XCC Premier, NICs, HBA según Lenovo Best Recipe</div><div class="check-note">T-07</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'srv')"><div class="check-box"></div><div class="check-text">XCC accesible por red de gestión — IP asignada, contraseña cambiada</div><div class="check-note">T-08</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'srv')"><div class="check-box"></div><div class="check-text">RAID configurado en cada servidor según requisitos del hipervisor elegido</div><div class="check-note">T-09</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'srv')"><div class="check-box"></div><div class="check-text">Conectividad iSCSI verificada desde cada servidor hacia FS5300 nuevo (ping + iscsi login)</div><div class="check-critical">pre-hipervisor</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'srv')"><div class="check-box"></div><div class="check-text">Monitoreo hardware activo en plataforma Coresolutions — alertas XCC conectadas</div><div class="check-note">T-13</div></div>
+      </div>
+    </div>
+
+    <!-- Storage -->
+    <div class="check-section">
+      <div class="check-group-title">Storage — IBM FlashSystem 5300 <span class="check-count" id="stg-count">0 / 5</span></div>
+      <div id="stg-checks">
+        <div class="check-item" onclick="toggleCheck(this,'stg')"><div class="check-box"></div><div class="check-text">FS5300 nuevo instalado en DC principal — 4 puertos 25G SFP+ conectados a 8360 A y B</div><div class="check-note">T-10</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'stg')"><div class="check-box"></div><div class="check-text">Cables DAC 25G de 5m (×4) instalados — verificar que son los del scope original</div><div class="check-note">inventario</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'stg')"><div class="check-box"></div><div class="check-text">IBM Spectrum Control Select Edition activo — plataforma de gestión operativa</div><div class="check-note">T-10</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'stg')"><div class="check-box"></div><div class="check-text">Arreglos de disco creados y benchmarkeados — write/read antes de poner datos de producción</div><div class="check-critical">antes de migrar</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'stg')"><div class="check-box"></div><div class="check-text">FS5300 actual desconectado del DC principal y listo para reubicación al DC alterno</div><div class="check-note">T-11</div></div>
+      </div>
+    </div>
+
+    <!-- Cables -->
+    <div class="check-section">
+      <div class="check-group-title">Cables y cableado — inventario crítico <span class="check-count" id="cab-count">0 / 4</span></div>
+      <div id="cab-checks">
+        <div class="check-item" onclick="toggleCheck(this,'cab')"><div class="check-box"></div><div class="check-text">DAC 100G 1m × 2 usados en VSX — verificar conectados en puertos QSFP28 correctos</div><div class="check-note">scope ítem 1</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'cab')"><div class="check-box"></div><div class="check-text">DAC 25G liberados del storage actual inventariados — no desechar hasta validar uso</div><div class="check-critical">riesgo R-05</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'cab')"><div class="check-box"></div><div class="check-text">DAC 10G actuales de servidores reutilizados en nuevos 8360 — verificar puerto compatible</div><div class="check-note">scope ítem 4</div></div>
+        <div class="check-item" onclick="toggleCheck(this,'cab')"><div class="check-box"></div><div class="check-text">Par de DAC 10G libres del cliente documentados — ubicación y longitud registrados</div><div class="check-note">scope ítem 9</div></div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <div class="progress-label-text">Progreso total</div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="total-progress" style="width:0%"></div></div>
+      <div class="progress-text" id="progress-label">0 de 22 ítems completados</div>
+    </div>
+  </div>
+
+  <!-- TAB 5: DECISIONES -->
+  <div id="tab-decisiones" class="tab-content">
+    <p style="font-size:12px;color:var(--text2);margin-bottom:20px;">Decisiones que el cliente debe tomar antes o durante la implementación. Cada una impacta directamente en el alcance técnico.</p>
+    <div class="decision-grid">
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <span class="decision-id">D-01 / NETWORKING</span>
+          <span class="decision-urgency blocker">BLOCKER — antes de implementar</span>
+        </div>
+        <div class="decision-q">¿Qué switch se usará como switch de gestión?</div>
+        <div class="decision-context">Define cómo se conectan los puertos de gestión (XCC/iDRAC) de todos los servidores, el FS5300, el NAS RS4021, los Proliants y los NVRs. Sin esto, no se puede definir arquitectura VLAN ni asignar IPs de gestión. Bloquea T-04 y todo lo que depende de él.</div>
+        <div class="decision-options">
+          <span class="decision-opt">HPE 1930 — simple, 1G</span>
+          <span class="decision-opt">HPE 6000 — más capacidad</span>
+          <span class="decision-opt">Reutilizar 5700 — permite 10G a NAS/Proliants</span>
+        </div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <span class="decision-id">D-02 / VIRTUALIZACIÓN</span>
+          <span class="decision-urgency blocker">BLOCKER — antes de llegar equipos</span>
+        </div>
+        <div class="decision-q">¿El clúster nuevo va con VMware o con otro hipervisor?</div>
+        <div class="decision-context">Si VMware (reutilizando licencias existentes): Coresolutions acompaña la migración de VMs al nuevo clúster — trabajo significativo incluido. Si es otro hipervisor: solo se acompaña el arranque del hipervisor nuevo, sin migración de VMs. El alcance de Hernán cambia radicalmente. Debe quedar por escrito antes de la entrega de equipos.</div>
+        <div class="decision-options">
+          <span class="decision-opt">VMware — con migración de VMs incluida</span>
+          <span class="decision-opt">Otro hipervisor — solo arranque inicial</span>
+        </div>
+      </div>
+
+      <div class="decision-card">
+        <div class="decision-header">
+          <span class="decision-id">D-03 / NETWORKING</span>
+          <span class="decision-urgency soon">Definir antes del cutover</span>
+        </div>
+        <div class="decision-q">¿Dónde se conectan los NVRs — en el 8360 o en el switch de gestión?</div>
+        <div class="decision-context">El email de UDA menciona que los NVRs deberían ir en los 8360, pero que se puede darles la opción del switch de gestión. Esta decisión afecta el diseño de VLANs y el conteo de puertos disponibles en los 8360. Resolver antes de T-04 (arquitectura VLAN).</div>
+        <div class="decision-options">
+          <span class="decision-opt">NVRs en Aruba 8360 — más capacidad, VLAN aislada</span>
+          <span class="decision-opt">NVRs en switch gestión — simplifica 8360</span>
+        </div>
+      </div>
+
+      <div class="decision-card" style="border-color:var(--border2);">
+        <div class="decision-header">
+          <span class="decision-id">D-04 / LOGÍSTICA / PM</span>
+          <span class="decision-urgency pending">Confirmar con UDA</span>
+        </div>
+        <div class="decision-q">¿El rack del datacenter está disponible y tiene capacidad suficiente?</div>
+        <div class="decision-context">El scope dice que el rack es provisto por la universidad. Antes de que lleguen los equipos confirmar: U disponibles (3× SR630 en enclosure + 1× FS5300 2U + 2× 8360 1U = mínimo ~12U), acceso físico al DC, alimentación eléctrica suficiente, y quién recibe y firma los equipos en sitio. Sin esto el día de instalación puede perderse.</div>
+        <div class="decision-options">
+          <span class="decision-opt">Confirmar U disponibles con UDA</span>
+          <span class="decision-opt">Verificar alimentación eléctrica</span>
+          <span class="decision-opt">Definir contacto de recepción en sitio</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+var checkTotals = { net: 7, srv: 6, stg: 5, cab: 4 };
+
+function toggleCheck(el, group) {
+  el.classList.toggle('done');
+  var boxes = document.querySelectorAll('#' + group + '-checks .check-item');
+  var done = 0;
+  boxes.forEach(function(b) { if (b.classList.contains('done')) done++; });
+  document.getElementById(group + '-count').textContent = done + ' / ' + checkTotals[group];
+  updateProgress();
+}
+
+function updateProgress() {
+  var total = 22;
+  var done = document.querySelectorAll('.check-item.done').length;
+  var pct = Math.round((done / total) * 100);
+  document.getElementById('total-progress').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = done + ' de ' + total + ' ítems completados (' + pct + '%)';
+}
+</script>
+
+</body>
+</html>
